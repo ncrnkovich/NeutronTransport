@@ -27,34 +27,34 @@ q(1:end) = sig/2*phi0 + S;
 
 while error > err
     
-for n = 1:length(mu_n)
-    
-    if mu_n(n) > 0
+    for n = 1:length(mu_n)
         
-        for i = 2:2:I-1
+        if mu_n(n) > 0
             
-            psi(n,i) = (1 + 0.5*sigV(i)*delta/abs(mu_n(n)))^(-1)*(psi(n,i-1) + 0.5*delta*q(i)/abs(mu_n(n)));
-            psi(n,i+1) = 2*psi(n,i) - psi(n,i-1);
+            for i = 2:2:I-1
+                
+                psi(n,i) = (1 + 0.5*sigV(i)*delta/abs(mu_n(n)))^(-1)*(psi(n,i-1) + 0.5*delta*q(i)/abs(mu_n(n)));
+                psi(n,i+1) = 2*psi(n,i) - psi(n,i-1);
+            end
+            
+        else
+            for i = I-1:-2:2
+                
+                psi(n,i) = (1 + 0.5*sigV(i)*delta/abs(mu_n(n)))^(-1)*(psi(n,i+1) + 0.5*delta*q(i)/abs(mu_n(n)));
+                psi(n,i-1) = 2*psi(n,i) - psi(n,i+1);
+            end
         end
         
-    else
-        for i = I-1:-2:2
-            
-            psi(n,i) = (1 + 0.5*sigV(i)*delta/abs(mu_n(n)))^(-1)*(psi(n,i+1) + 0.5*delta*q(i)/abs(mu_n(n)));
-            psi(n,i-1) = 2*psi(n,i) - psi(n,i+1);
-        end
-    end   
+    end
     
-end
-
-for i = 2:2:I-1
-    phi(i) = dot(w_n, psi(:,i));
-    q(i) = 0.5*sigV(i)*phi(i) + S;
-end
+    for i = 2:2:I-1
+        phi(i) = dot(w_n, psi(:,i));
+        q(i) = 0.5*sigV(i)*phi(i) + S;
+    end
     
-error = max(abs(phiPrev - phi));
-phiPrev = phi;
-
+    error = max(abs(phiPrev - phi));
+    phiPrev = phi;
+    
 end
     
 
