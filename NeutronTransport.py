@@ -7,7 +7,7 @@ from scipy import constants
 
 # set up grid 
 a = 1
-I = 11
+I = 10001
 N = 8
 x = np.linspace(0, a, I)
 delta = x[2] - x[0]
@@ -45,16 +45,13 @@ while error > err:
 
         if mu_n[n] > 0:
 
-            for i in range(1, len(x)-1, 2):
-                print('forward',i)
-                
+            for i in range(1, len(x)-1, 2):                
                 psi[n,i] = (1 + 0.5*sigV[i]*delta/abs(mu_n[n]))**(-1)*(psi[n,i-1] + 0.5*delta*q[i]/abs(mu_n[n]))
                 psi[n,i+1] = 2*psi[n,i] - psi[n,i-1]
             
         else:
 
             for i in range(I-2, 0, -2):
-                print(i)
                 psi[n,i] = (1 + 0.5*sigV[i]*delta/abs(mu_n[n]))**(-1)*(psi[n,i+1] + 0.5*delta*q[i]/abs(mu_n[n]))
                 psi[n,i-1] = 2*psi[n,i] - psi[n,i+1]
     
