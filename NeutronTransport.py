@@ -11,9 +11,9 @@ import scipy as scipy
 from scipy.constants import constants
 import scipy.special
 # set up grid 
-a = 2
-I = 200
-N = 8
+a = 5
+I = 50
+N = 2
 x = np.linspace(0, a, I)
 delta = x[1] - x[0]
 
@@ -21,7 +21,7 @@ delta = x[1] - x[0]
 psiCenter = np.zeros((N,I))
 psiEdge = np.zeros((N,I+1))
 phi = np.zeros(I)
-phiPrev = np.zeros(len(phi))
+phiPrev = np.zeros(len(phi)) 
 phi_0 = 0 # initial guess for phi
 
 
@@ -33,7 +33,7 @@ sig_s = np.zeros(I) + 0 # scattering cross section
 
 # set error tolerances and q vector
 error = 10 # initial error so while loop is true
-err = 1E-5
+err = 1E-10
 S = 0 # specified source term 
 q = np.zeros(I)+ 0.5*sig_s*phi_0 + S
 
@@ -42,6 +42,7 @@ q = np.zeros(I)+ 0.5*sig_s*phi_0 + S
 # mu_n = np.array([-0.9602898564,-0.7966664774,-0.5255324099,-0.18343464240,0.1834346424,0.52553240990,0.7966664774,0.9602898564])
 # w_n = np.array([-0.1012285363,-0.2223810344,-0.3137066459,-0.3626837834,0.3626837834,0.3137066459,0.2223810344,0.1012285363])
 mu_n, w_n = scipy.special.roots_legendre(N)
+# w_n = w_n/np.sum(w_n)
 rightSweep = 1
 
 while error > err:
@@ -70,12 +71,12 @@ while error > err:
     
     for i in range(I):
         phi[i] = np.dot(w_n, psiCenter[:,i])
-        q[i] = 0.5*sig_s[i]*phi[i] + S
+        q[i] = sig_s[i]*phi[i] + S
         
     
     # error = max(abs(phiPrev - phi)) # RMSerror = np.norm(phiPrev - phi)
     error = np.linalg.norm(phiPrev - phi)
-    phiPrev = phi
+    phiPrev = phi.copy()
 
 psiExact = np.zeros((N, I))
 phiExact = np.zeros(I)
@@ -88,14 +89,21 @@ for n in range(N):
         else:
             psiExact[n,i] = math.exp(-x[i]/abs(mu_n[n]))
 
-            
-phiExact = scipy.special.expn(2, x)
+if rightSweep:
+    phiExact = scipy.special.expn(2, x)
+else:
+    phiExact = scipy.special.expn(2, xRL)
 
-# plt.plot(x, psiExact[0,:], label="Exact")
-# plt.plot(x, psiCenter[0,:], label= "Num")
+plt.figure(1)
+for i in range(N):
+    if mu_n[i] > 0:
+        # plt.plot(x, psiExact[i,:], label="Exact %f"%(mu_n[i]))
+        plt.plot(x, psiCenter[i,:],"--")
+    
+plt.legend()
 
-# plt.legend()
 
+plt.figure(2)
 plt.plot(x, phiExact, label="Exact")
 plt.plot(x,phi, label="Num")
 plt.legend()
