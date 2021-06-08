@@ -12,8 +12,8 @@ from scipy.constants import constants
 import scipy.special
 # set up grid 
 a = 5
-I = 50
-N = 2
+I = 200
+N = 8
 x = np.linspace(0, a, I)
 delta = x[1] - x[0]
 
