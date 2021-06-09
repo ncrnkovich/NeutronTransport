@@ -11,6 +11,8 @@ from scipy.constants import constants
 import scipy.special
 import sweepFunction
 from sweepFunction import sweep
+import crossSections
+from crossSections import crossSections
 
 # set grid parameters
 a = 1
@@ -21,8 +23,15 @@ N = 4
 S = 0
 
 # cross sections
-sig_t = np.zeros(I)+ 1 # total cross section
-sig_s = np.zeros(I) + 0 # scattering cross section
+sig_t = np.zeros(I)  # total cross section
+sig_s = np.zeros(I)  # scattering cross section
+sig_tA = 1 # first total cross section 
+sig_tB = 0 # second total cross section 
+sig_sA = 0 # scattering cross sections 
+sig_sB = 0 # scattering cross sections
+A = 10 # number of consecutive elements for sig_A
+B = 0 # number of consecutive elements for sig_B
+sig_t, sig_s = crossSections(sig_t, sig_s, sig_tA, sig_tB, sig_sA, sig_sB, A, B)
 
 # generate psis with boundary conditions
 psiEdgeL = 1
