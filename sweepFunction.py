@@ -45,6 +45,7 @@ def sweep(a, I, N, sig_t, sig_s, S, psiEdgeL, psiEdgeR):
     mu_n, w_n = scipy.special.roots_legendre(N)
     w_n = w_n/np.sum(w_n)
 
+    it = 1
     while error > err:
         for n in range(len(mu_n)):
 
@@ -68,6 +69,9 @@ def sweep(a, I, N, sig_t, sig_s, S, psiEdgeL, psiEdgeR):
         # error = max(abs(phiPrev - phi)) # RMSerror = np.norm(phiPrev - phi)
         error = np.linalg.norm(phiPrev - phi)
         phiPrev = phi.copy()
+
+        print("Iteration = ", it, "error = ", error)
+        it += 1
 
     return psiCenter, phi
     
