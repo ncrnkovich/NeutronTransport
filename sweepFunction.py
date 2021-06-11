@@ -38,7 +38,7 @@ def sweep(a, I, N, sig_t, sig_s, S, psiEdgeL, psiEdgeR):
     # set error tolerances and q vector
     error = 10 # initial error so while loop is true
     err = 1E-7
-    q = np.zeros(I)+ 0.5*sig_s*phi_0 + S
+    q = np.zeros(I)+ sig_s*phi_0 + S[0]
 
 
     # P_N quadrature for N = 8 w_n normalized to 1
@@ -60,10 +60,13 @@ def sweep(a, I, N, sig_t, sig_s, S, psiEdgeL, psiEdgeR):
                 for i in range(I-1, -1, -1):
                     psiCenter[n,i] = (1 + 0.5*sig_t[i]*delta/abs(mu_n[n]))**(-1)*(psiEdge[n,i+1] + 0.5*delta*q[i]/abs(mu_n[n]))                    
                     psiEdge[n,i] = 2*psiCenter[n,i] - psiEdge[n,i+1]
-        
+
+                # reflective boundary at x = 0
+                psiEdge[(N-1-n),0] = psiEdge[n,0]
+                
         for i in range(I):
             phi[i] = np.dot(w_n, psiCenter[:,i])
-            q[i] = sig_s[i]*phi[i] + S
+            q[i] = sig_s[i]*phi[i] + S[i]
             
         
         # error = max(abs(phiPrev - phi)) # RMSerror = np.norm(phiPrev - phi)

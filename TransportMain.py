@@ -9,41 +9,43 @@ from numpy.core.numeric import Inf
 import scipy as scipy
 from scipy.constants import constants
 import scipy.special
-import sweepFunction
+# import sweepFunction
 from sweepFunction import sweep
-import crossSections
+# import crossSections
 from crossSections import crossSections
-
+from crossSections import reedsProblem
 # set grid parameters
-a = 1
+a = 8
 I = 100
 x = np.linspace(0, a, I)
 # specify discrete ordinates and source
 N = 4
-S = 0
+S = np.zeros(I) + 0
+
 
 # cross sections
 sig_t = np.zeros(I)  # total cross section
 sig_s = np.zeros(I)  # scattering cross section
 sig_tA = 1 # first total cross section 
-sig_tB = 0 # second total cross section 
+sig_tB = 10 # second total cross section 
 sig_sA = 0 # scattering cross sections 
-sig_sB = 0 # scattering cross sections
-A = 10 # number of consecutive elements for sig_A
-B = 0 # number of consecutive elements for sig_B
-sig_t, sig_s = crossSections(sig_t, sig_s, sig_tA, sig_tB, sig_sA, sig_sB, A, B)
+sig_sB = 4 # scattering cross sections
+A = 20 # number of consecutive elements for sig_A
+B = 5  # number of consecutive elements for sig_B
+# sig_t, sig_s = crossSections(sig_t, sig_s, sig_tA, sig_tB, sig_sA, sig_sB, A, B)
+
+alpha = 1
+sig_t, sig_s, S = reedsProblem(x, alpha, sig_t, sig_s, S)
 
 # generate psis with boundary conditions
-psiEdgeL = 1
+psiEdgeL = 0
 psiEdgeR = 0
-
 psi, phi = sweep(a, I, N, sig_t, sig_s, S, psiEdgeL, psiEdgeR)
-
 plt.figure(1)
 for i in range(N):
     plt.plot(x, psi[i,:],"--")
     
-plt.legend()
+# plt.legend()
 plt.figure(2)
 plt.plot(x,phi, label="Num")
 plt.legend()
