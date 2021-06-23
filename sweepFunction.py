@@ -61,8 +61,8 @@ def sweep(a, I, N, sig_t, sig_s, S, psiEdgeL, psiEdgeR):
                     psiCenter[n,i] = (1 + 0.5*sig_t[i]*delta/abs(mu_n[n]))**(-1)*(psiEdge[n,i+1] + 0.5*delta*q[i]/abs(mu_n[n]))                    
                     psiEdge[n,i] = 2*psiCenter[n,i] - psiEdge[n,i+1]
 
-                # reflective boundary at x = 0
-                psiEdge[(N-1-n),0] = psiEdge[n,0]
+                ## reflective boundary at x = 0
+                # psiEdge[(N-1-n),0] = psiEdge[n,0]
                 
         for i in range(I):
             phi[i] = np.dot(w_n, psiCenter[:,i])

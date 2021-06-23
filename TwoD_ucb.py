@@ -5,7 +5,7 @@ Created on Sat May  5 09:27:21 2018
 
 @author: ryanmcclarren
 """
-
+# %%
 import numpy as np
 import math
 import matplotlib.pyplot as plt
@@ -26,7 +26,7 @@ def sweep2D_scb(Nx,Ny,hx,hy,etax,etay,sigmat,Q,boundaryx, boundaryy):
     ihy = 1/hy
     Lmat = etax*ihx*Ax + etay*ihy*Ay
     b = np.zeros(4)
-    if (etax > 0) and (etay > 0):
+    if (etax > 0) and  (etay > 0):
         Lmat[1,1] += 2*etax*ihx
         Lmat[2,2] += 2*etax*ihx + 2*etay*ihy
         Lmat[3,3] += 2*etay*ihy
@@ -46,7 +46,7 @@ def sweep2D_scb(Nx,Ny,hx,hy,etax,etay,sigmat,Q,boundaryx, boundaryy):
                     psibottom3 = psi[i,j-1,3]
                     psibottom2 = psi[i,j-1,2]
                 
-                
+                print("Q = ", Q[10,:,0])
                 tmpLmat = Lmat + np.diag(sigmat[i,j,:])
                 #print(tmpLmat,Lmat,np.diag(sigmat[i,j,:]))
                 b[0] = Q[i,j,0] + psibottom3*2*etay*ihy + psileft1*2*etax*ihx
@@ -132,6 +132,7 @@ def sweep2D_scb(Nx,Ny,hx,hy,etax,etay,sigmat,Q,boundaryx, boundaryy):
 
 
                 tmpLmat = Lmat + np.diag(sigmat[i,j,:])
+                
                 b[0] = Q[i,j,0] + psibottom3*2*etay*ihy
                 b[1] = Q[i,j,1] + psibottom2*2*etay*ihy - psiright0*2*etax*ihx
                 b[2] = Q[i,j,2] - psiright3*2*etax*ihx
@@ -206,6 +207,7 @@ def flatten_phi(phi,Nx,Ny,hx,hy):
 def SI(Nx,Ny,hx,hy,phi_old,Nord,sigmat,sigmas,q,boundaryx, boundaryy):
     w,etax,etay = prod_quad(N=Nord)
     Qin = (q + sigmas*phi_old)
+    print("Qin = ", Qin[10,:,0])
     #print(w,np.sum(w),np.sum(Qin))
     angles = w.size
     phi = np.zeros((Nx,Ny,4))
@@ -252,7 +254,7 @@ hx = Lx/Nx
 hy = Ly/Ny
 sigma_t = np.zeros((Nx,Ny,4))+100
 sigma_s = sigma_t*0.1
-Q = (sigma_t)*0
+Q = (sigma_t)*0 # specified source
 lower_fact = 0.001
 #put channel in
 for i in range(Nx):
@@ -279,26 +281,25 @@ w,etax,etay = prod_quad(Nord)
 boundaryx = np.zeros(w.size)
 boundaryy = np.zeros(w.size) + 0#+ 1/np.sum(w)
 boundaryx[etax>0] = 1/np.sum(w)
-#boundaryx[etax > 0] = 1
-#boundaryy[etay > 0] = 1
-#phi,iteration = SI_solve(Nx,Ny,hx,hy, phi_old, Nord, sigma_t, sigma_s, Q, boundaryx, boundaryy, LOUD=1)
-
-
-
+boundaryx[etax > 0] = 1
+boundaryy[etay > 0] = 1
 phi,iteration = SI_solve(Nx,Ny,hx,hy, phi_old, Nord, sigma_t, sigma_s, Q, boundaryx, boundaryy, LOUD=1)
+
+# phi,iteration = SI_solve(Nx,Ny,hx,hy, phi_old, Nord, sigma_t, sigma_s, Q, boundaryx, boundaryy, LOUD=1)
 
 x,y,phi_flat = flatten_phi(phi,Nx,Ny,hx,hy)
 
-phi2 = SI(Nx,Ny,hx,hy, phi, Nord, sigma_t, sigma_s, Q, boundaryx, boundaryy)
-x,y,phi_flat2 = flatten_phi(phi2,Nx,Ny,hx,hy)
+# phi2 = SI(Nx,Ny,hx,hy, phi, Nord, sigma_t, sigma_s, Q, boundaryx, boundaryy)
+# x,y,phi_flat2 = flatten_phi(phi2,Nx,Ny,hx,hy)
 
 plt.pcolor(x,y,phi_flat)
 plt.colorbar()
 plt.show()
 
-plt.plot(x[:,0],phi_flat[:,0])
-plt.plot(y[0,:],phi_flat[0,:])
-plt.show()
+# plt.plot(x[:,0],phi_flat[:,0])
+# plt.plot(y[0,:],phi_flat[0,:])
+# plt.show()
 
+# %%
 
 
