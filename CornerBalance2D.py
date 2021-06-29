@@ -53,8 +53,6 @@ def prod_quad(N):
             place += 2
     return w[mu>0]/np.sum(w[mu>0]), eta[mu>0],xi[mu>0]
 
-
-
 def sweep2D(Nx, Ny, dx, dy, sig_s, sig_t, Q, mu, eta, boundaryX, boundaryY):
 
     # matrices for corner balance method
@@ -187,7 +185,6 @@ def sweep2D(Nx, Ny, dx, dy, sig_s, sig_t, Q, mu, eta, boundaryX, boundaryY):
 
     return psi
 
-
 def phiSolver(N, Nx, Ny, dx, dy, sig_s, sig_t, Q, boundaryX, boundaryY):
 
     w, mu, eta = prod_quad(N)
@@ -209,7 +206,6 @@ def convergenceCheck(phi, phiPrev, errTol):
         converged = False
 
     return converged, L2norm
-
 
 def grid(Nx, Ny, dx, dy, phi):
 
@@ -312,7 +308,7 @@ def latticeCrossSections(sig_t, sig_s, S, dx, dy):
             if xpos < 4 and xpos > 3 and ypos < 4 and ypos > 3:
                 sig_s[i,j,:] = 1
                 sig_t[i,j,:] = 1
-                S[i,j,:] = 100
+                S[i,j,:] = 1
             elif xpos > 1 and xpos < 2:
                 if ypos > 1 and ypos < 2:
                     sig_s[i,j,:] = 0
@@ -403,8 +399,6 @@ def latticeCrossSections(sig_t, sig_s, S, dx, dy):
 
     return sig_t, sig_s, S
 
-# def hohlraumProblem(sig_t, sig_s, S, dx, dy) 
-
 
 
 print("Started Program")
@@ -444,7 +438,7 @@ boundaryY[eta < 0] = 0
 
 
 converged = False
-errTol = 1E-5
+errTol = 1E-8
 phiPrev = np.zeros((Nx,Ny,4))
 it = 1
 
@@ -464,7 +458,7 @@ x, y, phi_grid = grid(Nx, Ny, dx, dy, phi)
 
 
 
-plt.pcolormesh(x, y, phi_grid)
+plt.pcolormesh(x, y, phi_grid, norm=colors.LogNorm(vmin=phi_grid.min(), vmax=phi_grid.max()))
 plt.colorbar()
 # %%
 
