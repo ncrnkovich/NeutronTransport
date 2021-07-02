@@ -34,40 +34,74 @@ def sweepMotion(psiCenter, psiEdge, psiCenterPrev, psiEdgePrev, u, v, a, sig_t, 
     delta = x[1] - x[0]
 
     # temporary for constant flow
-    u = np.average(u)
     q = v - u # uniform neutron vel relative to uniform material vel   
 
     # P_N Quadrature for order N w_n normalized to 1
     mu_n, w_n = scipy.special.roots_legendre(N)
     w_n = w_n/np.sum(w_n)
 
-    for n in range(len(mu_n)):
+    for n in range(mu_n.size):
+        mu = mu_n[n]
 
-        Xu = u/(np.abs(mu_n[n])*np.abs(q))
-
-        if v*mu[n] + u > 0:
-
+        if mu*v + u[0] > 0:
+            i = 0
             psiEdge[n,0] = boundary[n]
-            for i in range(I):
+            while i < I:
+                if mu*v + u[i+1] > 0:
+                    uin = u[i]
+                    uout = u[i+1]
+                    psiCenter[n,i] = (Q[i] + psiEdge[n,i]*(2.0*np.abs(mu)/delta + uin/(q[i]*delta) + uout/(q[i]*delta)))/(sig_t[i] + 2.0*mu/delta + 2*uout/(q[i]*delta))
+                    psiEdge[n,i+1] = 2.0*psiCenter[n,i] - psiEdge[n,i]
+                    i += 1
 
-                uL = u # uL = u[i]
-                uR = u# uR = u[i+1]
+                elif mu*v + u[i+1] < 0:
+                    j = i
+                    while mu*v + u[j+1] < 0: # when false, j is center of B-type cell
+                        j += 1
 
-                psiCenter[n,i] = (Q[i] + psiEdge[n,i]*(2.0*np.abs(mu_n[n])/delta + uL/(q*delta) + uR/(q*delta)))/(sig_t[i] + 2.0*mu_n[n]/delta + 2*uR/(q*delta))
-                psiEdge[n,i+1] = 2.0*psiCenter[n,i] - psiEdge[n,i]
-                
+                    psiCenter[n,j] = Q[j]
+                    psiEdge[n,j] = psiCenter[n,j]
+                    for k in range(j-1, i+1, -1):
+                        uout = u[k]
+                        uin = u[k+1]
+                        psiCenter[n,k] = (Q[k] + (2.0*np.abs(mu)/delta - uin/(q[k+1]*delta) - uout/(q[k+1]*delta))*psiEdge[n,k+1])/(sig_t[k] + 2.0*np.abs(mu)/delta -2*uout/(q[k+1]*delta)) 
+                        psiEdge[n,k] = 2.0*psiCenter[n,k] - psiEdge[n,k+1]
+
+                    psiCenter[n,i] = 0.5*(psiEdge[n,i] + psiEdge[n, i+1])
+                    i = j + 1
+
+                else:
+                    print("error: mu*v + u[i] = 0")
+
+
         else:
-            
+            i = I - 1
             psiEdge[n,-1] = boundary[n]
-            for i in range(I-1, -1, -1):
-                uL = u # uL = u[i]
-                uR = u# uR = u[i+1]
-                psiCenter[n,i] = (Q[i] + (2.0*np.abs(mu_n[n])/delta - uR/(q*delta) - uL/(q*delta))*psiEdge[n,i+1])/(sig_t[i] + 2.0*np.abs(mu_n[n])/delta -2*uR/(q*delta)) 
-                psiEdge[n,i] = 2.0*psiCenter[n,i] - psiEdge[n,i+1]
+            while i > -1:
+                # print("n = ", n, mu*v + u[i])
+                if mu*v + u[i] < 0:
+                    uout = u[i]
+                    uin = u[i+1]
+                    psiCenter[n,i] = (Q[i] + (2.0*np.abs(mu)/delta - uin/(q[i+1]*delta) - uout/(q[i+1]*delta))*psiEdge[n,i+1])/(sig_t[i] + 2.0*np.abs(mu)/delta -2*uout/(q[i+1]*delta)) 
+                    psiEdge[n,i] = 2.0*psiCenter[n,i] - psiEdge[n,i+1]
+                    i -= 1
 
-                ## reflective boundary at x = 0
-                # psiEdge[(N-1-n),0] = psiEdge[n,0]
-                    
+                elif mu*v + u[i] > 0:
+                    j = i
+                    while mu*v + u[j] > 0:
+                        j -= 1
+
+                    psiCenter[n,j] = Q[j]
+                    psiEdge[n,j+1] = psiCenter[n,j]
+                    for k in range(j+1, i-1, 1):
+                        uin = u[k]
+                        uout = u[k+1]
+                        psiCenter[n,k] = (Q[k] + psiEdge[n,k]*(2.0*np.abs(mu)/delta + uin/(q[k]*delta) + uout/(q[k]*delta)))/(sig_t[k] + 2.0*mu/delta + 2*uout/(q[k]*delta))
+                        psiEdge[n,k+1] = 2.0*psiCenter[n,k] - psiEdge[n,k]
+
+                    psiCenter[n,i] = 0.5*(psiEdge[n,i] + psiEdge[n, i+1])
+                    i = j - 1
+
     return psiCenter, psiEdge
 
 def phiSolver(psi, w):
@@ -83,15 +117,26 @@ def fill(sig_t, sig_s, S):
 
     # place to write any code to fill cross sections/external source vectors
     sig_t += 1
-    sig_s += 0
-    S += 0
+    sig_s += 0.1
+    S += 1
 
     return sig_t, sig_s, S
 
-def materialVel(I):
+def materialVel(I,dx):
 
     u = np.zeros(I+1)
-    u += 0
+    # for i in range(u.size):
+    #     xpos = dx*(i - 0.5)
+    #     if xpos > 4 and xpos < 6:
+    #         u[i] = -30
+    #     else:
+    #         u[i] = 10
+    for i in range(u.size):
+        xpos = dx*(i- 0.5)
+        if xpos > 4:
+            u[i] = -20
+        else:
+            u[i] = 20
 
     return u
 
@@ -103,19 +148,21 @@ def materialVel(I):
 # 1 eV = 1.602E-19 J
 
 # set grid parameters
-a = 1
-I = 100
+a = 8
+I = 500
 x = np.linspace(0, a, I)
+dx = x[1] - x[0]
 # specify discrete ordinates
-N = 8
-u = materialVel(I)
+N = 4
+u = materialVel(I,dx)
 v = 100
 
 # cross sections
 sig_t = np.zeros(I) # total cross section
 sig_s = np.zeros(I) # scattering cross section
 S = np.zeros(I) # external source
-sig_t, sig_s, S = fill(sig_t, sig_s, S)
+# sig_t, sig_s, S = fill(sig_t, sig_s, S)
+sig_t, sig_s, S = reedsProblem(x, 1, sig_t, sig_s, S)
 
 # preallocate angular flux vectors and scalar flux and set boundary conditions
 psiCenter = np.zeros((N,I))
@@ -129,17 +176,16 @@ Q = np.zeros(I)+ sig_s[0]*phiPrev[0] + S[0]
 mu, w = scipy.special.roots_legendre(N)
 w = w/np.sum(w)
 boundary = np.zeros(N)
-boundary[mu > 0] = 1
+boundary[mu > 0] = 0
 boundary[mu < 0] = 0
 
 error = 10
 errTol = 1E-8
 it = 1
 while error > errTol:
-
     psiCenter, psiEdge = sweepMotion(psiCenter, psiEdge, psiCenterPrev, psiEdgePrev, u, v, a, sig_t, Q, boundary)
     phi = phiSolver(psiCenter, w)
-    Q = sig_s*phiPrev + S # iterate on source
+    Q = sig_s*phi + S # iterate on source
     error = np.linalg.norm(phiPrev - phi)
 
     # copy values for next iteration
@@ -150,20 +196,29 @@ while error > errTol:
     print("Iteration = ", it, "error = ", error)
     it += 1
 
-    if error > 1000:
+    if error > 100000:
         break
 
     
-
-
-
-
+q = v - u
 plt.figure(1)
-for i in range(N):
-    plt.plot(x, psiCenter[i,:],"--")
-    
-# plt.legend()
+plt.plot(x,u[0:(I)])
+plt.grid(True)
+
 plt.figure(2)
+for n in range(N):
+    plt.plot(x, mu[n]*v + u[0:I],label="mu = %.2f"%(mu[n]))
+    plt.legend()
+plt.grid(True)
+
+plt.figure(3)
+for n in range(N):
+    plt.plot(x, psiCenter[n,:],"--", label="mu = %.2f"%(mu[n]))
+    plt.legend()
+plt.grid(True)
+
+# plt.legend()
+plt.figure(4)
 plt.plot(x,phi, label="Num")
 plt.legend()
 plt.xlabel("x")

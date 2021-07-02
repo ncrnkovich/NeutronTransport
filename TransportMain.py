@@ -29,7 +29,7 @@ x = np.linspace(0, a, I)
 # specify discrete ordinates and source
 N = 8
 S = np.zeros(I) + 0
-u = 20 # material velocity
+u = 00 # material velocity
 v = 100
 
 # cross sections
@@ -69,8 +69,8 @@ plt.show
 
 
 # %%
-psi0 = 1
-u = 40 # material velocity
+psi0 = 0
+u = 100 # material velocity
 v = 100
 
 psiExact = np.zeros((N,x.size))
@@ -82,18 +82,19 @@ for n in range(N):
     else:
         gamma = mu[n] + u/(v-u)
 
-    Q = 10
+    Q = 1
     for i in range(x.size):
         psiExact[n,i] = psi0*math.exp(-sig_t[0]/gamma*x[i]) + Q/gamma*(1 - math.exp(-sig_t[0]/gamma*x[i]))
 
     
-    if n > 3:
+    if n > -1:
         plt.figure(3)
-        plt.plot(x,psiExact[n], label=mu[n])
+        plt.plot(x,psiExact[n], label=gamma)
         plt.legend()
         plt.xlabel("x")
         plt.ylabel("psi")
         plt.show
+        plt.title("gamma = %f"%(gamma))
 
 # %%
 
