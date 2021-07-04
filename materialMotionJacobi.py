@@ -148,6 +148,46 @@ def jacobiSolverMotion(psiCenter, psiCenterPrev, u, v, a, sig_t, sig_s, S, bound
                     
     return psiCenter
 
+
+def jacobiSolverNonUniform(psiCenter, psiCenterPrev, u, v, a, sig_t, sig_s, S, boundary):
+     
+    # set up grid
+    N, I = psiCenter.shape
+    x = np.linspace(0, a, I)
+    delta = x[1] - x[0]
+
+    q = v - u # uniform neutron vel relative to uniform material vel   
+
+    # P_N Quadrature for order N w_n normalized to 1
+    mu_n, w_n = scipy.special.roots_legendre(N)
+    w_n = w_n/np.sum(w_n)
+
+    for i in range(I):
+
+        for n in range(N):
+            mu = mu_n[n]
+            phiSum = 0
+
+            for k in range(N): 
+                if k != n:
+                    phiSum += w_n[k]*psiCenter[k,i] # use of psiCenter here effectively makes this Gauss-Seidel method
+            if mu*v + u[i] > 0:
+                if i == 0:
+                    psiCenter[n,i] = (S[i] + sig_s[i]*phiSum + boundary[n]*(u[i]/(delta*q[i]) + mu/delta))/(mu/delta + u[i+1]/(q[i+1]*delta) + sig_t[i] - sig_s[i]*w_n[n])
+                else:
+                    psiCenter[n,i] = (S[i] + sig_s[i]*phiSum + psiCenterPrev[n,i-1]*(u[i]/(delta*q[i]) + mu/delta))/(mu/delta + u[i+1]/(q[i+1]*delta) + sig_t[i] - sig_s[i]*w_n[n])
+            else:
+                
+                if i == I - 1:
+                    psiCenter[n,i] = (S[i] + sig_s[i]*phiSum - boundary[n]/delta*(u[i+1]/q[i+1] + mu))/(-mu/delta - u[i]/(delta*q[i]) + sig_t[i] - sig_s[i]*w_n[n])
+                else:
+                    
+                    psiCenter[n,i] = (S[i] + sig_s[i]*phiSum - psiCenterPrev[n,i+1]/delta*(u[i+1]/q[i+1] + mu))/(-mu/delta - u[i]/(delta*q[i]) + sig_t[i] - sig_s[i]*w_n[n])
+                    a = (S[i] + sig_s[i]*phiSum - psiCenterPrev[n,i+1]/delta*(u[i+1]/q[i+1] - mu))
+                    # print("Num = ", a)/
+
+    return psiCenter
+
 def phiSolver(psi, w):
 
     N, I = psi.shape
@@ -161,15 +201,22 @@ def fill(sig_t, sig_s, S):
 
     # place to write any code to fill cross sections/external source vectors
     sig_t += 1.5
-    sig_s += 0.
-    S += 0.
+    sig_s += 0.5
+    S += 1
 
     return sig_t, sig_s, S
 
-def materialVel(I):
+def materialVel(I, dx):
 
     u = np.zeros(I+1)
-    u += 0
+    # u += 0
+
+    for i in range(u.size):
+        xpos = dx*(i- 0.5)
+        if xpos > 4:
+            u[i] = -20
+        else:
+            u[i] = 20
 
     return u
 
@@ -181,21 +228,22 @@ def materialVel(I):
 # 1 eV = 1.602E-19 J
 
 # set grid parameters
-a = 10
+a = 8
 I = 200
 x = np.linspace(0, a, I)
+dx = x[1] - x[0]
 # specify discrete ordinates
-N = 8
-u = materialVel(I)
-v = 1000
+N = 4
+u = materialVel(I,dx)
+v = 100
 
 # cross sections
 sig_t = np.zeros(I) # total cross section
 sig_s = np.zeros(I) # scattering cross section
 S = np.zeros(I) # external source
-sig_t, sig_s, S = fill(sig_t, sig_s, S)
+# sig_t, sig_s, S = fill(sig_t, sig_s, S)
 # alpha = 1
-# sig_t, sig_s, S = reedsProblem(x, alpha, sig_t, sig_s, S)
+sig_t, sig_s, S = reedsProblem(x, 1, sig_t, sig_s, S)
 
 # preallocate angular flux vectors and scalar flux and set boundary conditions
 psiCenter = np.zeros((N,I))
@@ -209,17 +257,18 @@ Q = np.zeros(I)+ sig_s[0]*phiPrev[0] + S[0]
 mu, w = scipy.special.roots_legendre(N)
 w = w/np.sum(w)
 boundary = np.zeros(N)
-boundary[mu > 0] = 1
-boundary[mu < 0] = 1
-
+boundary[mu > 0] = 0
+boundary[mu < 0] = 0
+errorPrev = 100
 error = 10
 errTol = 1E-7
 it = 1
 while error > errTol:
 
+    # psiCenter = jacobiSolverNoMotion(psiCenter, psiCenterPrev, a, sig_t, sig_s, S, boundary)
     # psiCenter, psiEdge = sweepMotion(psiCenter, psiEdge, psiCenterPrev, psiEdgePrev, u, v, a, sig_t, Q, boundary)
-    psiCenter = jacobiSolverMotion(psiCenter, psiCenterPrev, u, v, a, sig_t, sig_s, S, boundary)
-
+    psiCenter = jacobiSolverNonUniform(psiCenter, psiCenterPrev, u, v, a, sig_t, sig_s, S, boundary)
+    # psiCenter = jacobiSolverMotion(psiCenter, psiCenterPrev, u, v, a, sig_t, sig_s, S, boundary)
     phi = phiSolver(psiCenter, w)
     # Q = sig_s*phiPrev + S # iterate on source
     error = np.linalg.norm(phiPrev - phi)
@@ -230,10 +279,16 @@ while error > errTol:
     # psiEdgePrev = psiEdge.copy()
 
     print("Iteration = ", it, "error = ", error)
+    
+    
     it += 1
 
     if error > 1000:
         break
+    # elif error > 2*errorPrev:
+    #     break
+    else:
+        errorPrev = error.copy()
 
     
 

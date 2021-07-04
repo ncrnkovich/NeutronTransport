@@ -152,8 +152,8 @@ def sweepMotion(u, v, a, I, N, sig_t, sig_s, S, boundary):
         
         print("Iteration = ", it, "error = ", error)
         it += 1
-        print("u = ", u, "v = ", v)
-        if error > 1000:
+        # print("u = ", u, "v = ", v)
+        if error > 100000:
             break
 
     return psiCenter, phi

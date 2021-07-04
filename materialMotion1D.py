@@ -48,9 +48,7 @@ def sweepMotion(psiCenter, psiEdge, psiCenterPrev, psiEdgePrev, u, v, a, sig_t, 
             psiEdge[n,0] = boundary[n]
             while i < I:
                 if mu*v + u[i+1] > 0:
-                    uin = u[i]
-                    uout = u[i+1]
-                    psiCenter[n,i] = (Q[i] + psiEdge[n,i]*(2.0*np.abs(mu)/delta + uin/(q[i]*delta) + uout/(q[i]*delta)))/(sig_t[i] + 2.0*mu/delta + 2*uout/(q[i]*delta))
+                    psiCenter[n,i] = (delta*Q[i] + psiEdge[n,i]*(2*mu + u[i+1]/q[i+1] + u[i]/q[i]))/(2*mu + delta*sig_t[i] + 2*u[i+1]/q[i+1])
                     psiEdge[n,i+1] = 2.0*psiCenter[n,i] - psiEdge[n,i]
                     i += 1
 
@@ -58,13 +56,13 @@ def sweepMotion(psiCenter, psiEdge, psiCenterPrev, psiEdgePrev, u, v, a, sig_t, 
                     j = i
                     while mu*v + u[j+1] < 0: # when false, j is center of B-type cell
                         j += 1
+                        if j == I-  1:
+                            break
 
                     psiCenter[n,j] = Q[j]
                     psiEdge[n,j] = psiCenter[n,j]
                     for k in range(j-1, i+1, -1):
-                        uout = u[k]
-                        uin = u[k+1]
-                        psiCenter[n,k] = (Q[k] + (2.0*np.abs(mu)/delta - uin/(q[k+1]*delta) - uout/(q[k+1]*delta))*psiEdge[n,k+1])/(sig_t[k] + 2.0*np.abs(mu)/delta -2*uout/(q[k+1]*delta)) 
+                        psiCenter[n,k] = (delta*Q[k] - psiEdge[n,k+1]*(2*mu + u[k+1]/q[k+1] + u[k]/q[k]))/(-2*mu + delta*sig_t[k] - 2*u[k]/q[k])
                         psiEdge[n,k] = 2.0*psiCenter[n,k] - psiEdge[n,k+1]
 
                     psiCenter[n,i] = 0.5*(psiEdge[n,i] + psiEdge[n, i+1])
@@ -80,9 +78,7 @@ def sweepMotion(psiCenter, psiEdge, psiCenterPrev, psiEdgePrev, u, v, a, sig_t, 
             while i > -1:
                 # print("n = ", n, mu*v + u[i])
                 if mu*v + u[i] < 0:
-                    uout = u[i]
-                    uin = u[i+1]
-                    psiCenter[n,i] = (Q[i] + (2.0*np.abs(mu)/delta - uin/(q[i+1]*delta) - uout/(q[i+1]*delta))*psiEdge[n,i+1])/(sig_t[i] + 2.0*np.abs(mu)/delta -2*uout/(q[i+1]*delta)) 
+                    psiCenter[n,i] = (delta*Q[i] - psiEdge[n,i+1]*(2*mu + u[i+1]/q[i+1] + u[i]/q[i]))/(-2*mu + delta*sig_t[i] - 2*u[i]/q[i])
                     psiEdge[n,i] = 2.0*psiCenter[n,i] - psiEdge[n,i+1]
                     i -= 1
 
@@ -96,7 +92,7 @@ def sweepMotion(psiCenter, psiEdge, psiCenterPrev, psiEdgePrev, u, v, a, sig_t, 
                     for k in range(j+1, i-1, 1):
                         uin = u[k]
                         uout = u[k+1]
-                        psiCenter[n,k] = (Q[k] + psiEdge[n,k]*(2.0*np.abs(mu)/delta + uin/(q[k]*delta) + uout/(q[k]*delta)))/(sig_t[k] + 2.0*mu/delta + 2*uout/(q[k]*delta))
+                        psiCenter[n,k] = (delta*Q[k] + psiEdge[n,k]*(2*mu + u[k+1]/q[k+1] + u[k]/q[k]))/(2*mu + delta*sig_t[k] + 2*u[k+1]/q[k+1])
                         psiEdge[n,k+1] = 2.0*psiCenter[n,k] - psiEdge[n,k]
 
                     psiCenter[n,i] = 0.5*(psiEdge[n,i] + psiEdge[n, i+1])

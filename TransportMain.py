@@ -23,8 +23,8 @@ from sweepFunction import sweepMotion
 # 1 eV = 1.602E-19 J
 
 # set grid parameters
-a = 1
-I = 100
+a = 8
+I = 500
 x = np.linspace(0, a, I)
 # specify discrete ordinates and source
 N = 8
@@ -33,7 +33,7 @@ u = 00 # material velocity
 v = 100
 
 # cross sections
-sig_t = np.zeros(I) + 1 # total cross section
+sig_t = np.zeros(I) + 0 # total cross section
 sig_s = np.zeros(I) + 0 # scattering cross section
 sig_tA = 1 # first total cross section 
 sig_tB = 10 # second total cross section 
@@ -44,14 +44,14 @@ B = 5  # number of consecutive elements for sig_B
 # sig_t, sig_s = crossSections(sig_t, sig_s, sig_tA, sig_tB, sig_sA, sig_sB, A, B)
 
 alpha = 1
-# sig_t, sig_s, S = reedsProblem(x, alpha, sig_t, sig_s, S)
+sig_t, sig_s, S = reedsProblem(x, alpha, sig_t, sig_s, S)
 
 # generate psis with boundary conditions
 mu, w = scipy.special.roots_legendre(N)
 w = w/np.sum(w)
 
 boundary = np.zeros(N)
-boundary[mu > 0] = 1
+boundary[mu > 0] = 0
 boundary[mu < 0] = 0
 # psi, phi = sweep(a, I, N, sig_t, sig_s, S, boundary)
 psi, phi = sweepMotion(u, v, a, I, N, sig_t, sig_s, S, boundary)
