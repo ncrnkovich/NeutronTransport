@@ -156,7 +156,6 @@ def jacobiSolverNonUniform(psiCenter, psiCenterPrev, u, v, a, sig_t, sig_s, S, b
     x = np.linspace(0, a, I)
     delta = x[1] - x[0]
 
-    q = v - u # uniform neutron vel relative to uniform material vel   
 
     # P_N Quadrature for order N w_n normalized to 1
     mu_n, w_n = scipy.special.roots_legendre(N)
@@ -167,15 +166,17 @@ def jacobiSolverNonUniform(psiCenter, psiCenterPrev, u, v, a, sig_t, sig_s, S, b
         for n in range(N):
             mu = mu_n[n]
             phiSum = 0
+            q = np.abs(mu*v - u) # uniform neutron vel relative to uniform material vel   
 
             for k in range(N): 
                 if k != n:
                     phiSum += w_n[k]*psiCenter[k,i] # use of psiCenter here effectively makes this Gauss-Seidel method
-            if mu*v + u[i] > 0:
+            if mu*v + u[i]/q[i] > 0:
                 if i == 0:
                     psiCenter[n,i] = (S[i] + sig_s[i]*phiSum + boundary[n]*(u[i]/(delta*q[i]) + mu/delta))/(mu/delta + u[i+1]/(q[i+1]*delta) + sig_t[i] - sig_s[i]*w_n[n])
                 else:
                     psiCenter[n,i] = (S[i] + sig_s[i]*phiSum + psiCenterPrev[n,i-1]*(u[i]/(delta*q[i]) + mu/delta))/(mu/delta + u[i+1]/(q[i+1]*delta) + sig_t[i] - sig_s[i]*w_n[n])
+                    # psiCenter[n,i] = (S[i] + sig_s[i]*phiSum + psiCenterPrev[n,i-1]*(u[i]/(delta*q[i]) + mu/delta))/(mu/delta + u[i+1]/(q[i+1]*delta) + sig_t[i] - sig_s[i]*w_n[n])
             else:
                 
                 if i == I - 1:
@@ -200,8 +201,8 @@ def phiSolver(psi, w):
 def fill(sig_t, sig_s, S):  
 
     # place to write any code to fill cross sections/external source vectors
-    sig_t += 1.5
-    sig_s += 0.5
+    sig_t += 1
+    sig_s += 0.1
     S += 1
 
     return sig_t, sig_s, S
@@ -233,7 +234,7 @@ I = 200
 x = np.linspace(0, a, I)
 dx = x[1] - x[0]
 # specify discrete ordinates
-N = 4
+N = 8
 u = materialVel(I,dx)
 v = 100
 
@@ -241,9 +242,9 @@ v = 100
 sig_t = np.zeros(I) # total cross section
 sig_s = np.zeros(I) # scattering cross section
 S = np.zeros(I) # external source
-# sig_t, sig_s, S = fill(sig_t, sig_s, S)
+sig_t, sig_s, S = fill(sig_t, sig_s, S)
 # alpha = 1
-sig_t, sig_s, S = reedsProblem(x, 1, sig_t, sig_s, S)
+# sig_t, sig_s, S = reedsProblem(x, 1, sig_t, sig_s, S)
 
 # preallocate angular flux vectors and scalar flux and set boundary conditions
 psiCenter = np.zeros((N,I))

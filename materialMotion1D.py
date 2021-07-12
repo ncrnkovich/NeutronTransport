@@ -33,9 +33,6 @@ def sweepMotion(psiCenter, psiEdge, psiCenterPrev, psiEdgePrev, u, v, a, sig_t, 
     x = np.linspace(0, a, I)
     delta = x[1] - x[0]
 
-    # temporary for constant flow
-    q = v - u # uniform neutron vel relative to uniform material vel   
-
     # P_N Quadrature for order N w_n normalized to 1
     mu_n, w_n = scipy.special.roots_legendre(N)
     w_n = w_n/np.sum(w_n)
@@ -43,12 +40,13 @@ def sweepMotion(psiCenter, psiEdge, psiCenterPrev, psiEdgePrev, u, v, a, sig_t, 
     for n in range(mu_n.size):
         mu = mu_n[n]
 
+        q = np.abs(mu*v - u) # uniform neutron vel relative to uniform material vel   
         if mu*v + u[0] > 0:
             i = 0
             psiEdge[n,0] = boundary[n]
             while i < I:
                 if mu*v + u[i+1] > 0:
-                    psiCenter[n,i] = (delta*Q[i] + psiEdge[n,i]*(2*mu + u[i+1]/q[i+1] + u[i]/q[i]))/(2*mu + delta*sig_t[i] + 2*u[i+1]/q[i+1])
+                    psiCenter[n,i] = (delta*Q[i] + 2*mu*(q)/() + psiEdge[n,i]*(2*mu + u[i+1]/q[i+1] + u[i]/q[i]))/(2*mu + delta*sig_t[i] + 2*u[i+1]/q[i+1])
                     psiEdge[n,i+1] = 2.0*psiCenter[n,i] - psiEdge[n,i]
                     i += 1
 
@@ -157,8 +155,8 @@ v = 100
 sig_t = np.zeros(I) # total cross section
 sig_s = np.zeros(I) # scattering cross section
 S = np.zeros(I) # external source
-# sig_t, sig_s, S = fill(sig_t, sig_s, S)
-sig_t, sig_s, S = reedsProblem(x, 1, sig_t, sig_s, S)
+sig_t, sig_s, S = fill(sig_t, sig_s, S)
+# sig_t, sig_s, S = reedsProblem(x, 1, sig_t, sig_s, S)
 
 # preallocate angular flux vectors and scalar flux and set boundary conditions
 psiCenter = np.zeros((N,I))
