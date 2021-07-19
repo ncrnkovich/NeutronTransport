@@ -171,21 +171,17 @@ def jacobiSolverNonUniform(psiCenter, psiCenterPrev, u, v, a, sig_t, sig_s, S, b
             for k in range(N): 
                 if k != n:
                     phiSum += w_n[k]*psiCenter[k,i] # use of psiCenter here effectively makes this Gauss-Seidel method
-            if mu*v + u[i]/q[i] > 0:
+            if mu + u[i]/q[i] > 0:
                 if i == 0:
-                    psiCenter[n,i] = (S[i] + sig_s[i]*phiSum + boundary[n]*(u[i]/(delta*q[i]) + mu/delta))/(mu/delta + u[i+1]/(q[i+1]*delta) + sig_t[i] - sig_s[i]*w_n[n])
+                    psiCenter[n,i] = (S[i] + sig_s[i]*phiSum + boundary[n]/delta*(u[i]/q[i] + mu))/(mu/delta + u[i+1]/(q[i+1]*delta) + sig_t[i] - sig_s[i]*w_n[n])
                 else:
-                    psiCenter[n,i] = (S[i] + sig_s[i]*phiSum + psiCenterPrev[n,i-1]*(u[i]/(delta*q[i]) + mu/delta))/(mu/delta + u[i+1]/(q[i+1]*delta) + sig_t[i] - sig_s[i]*w_n[n])
-                    # psiCenter[n,i] = (S[i] + sig_s[i]*phiSum + psiCenterPrev[n,i-1]*(u[i]/(delta*q[i]) + mu/delta))/(mu/delta + u[i+1]/(q[i+1]*delta) + sig_t[i] - sig_s[i]*w_n[n])
+                    psiCenter[n,i] = (S[i] + sig_s[i]*phiSum + psiCenterPrev[n,i-1]/delta*(u[i]/q[i] + mu))/(mu/delta + u[i+1]/(q[i+1]*delta) + sig_t[i] - sig_s[i]*w_n[n])
             else:
                 
                 if i == I - 1:
                     psiCenter[n,i] = (S[i] + sig_s[i]*phiSum - boundary[n]/delta*(u[i+1]/q[i+1] + mu))/(-mu/delta - u[i]/(delta*q[i]) + sig_t[i] - sig_s[i]*w_n[n])
                 else:
-                    
                     psiCenter[n,i] = (S[i] + sig_s[i]*phiSum - psiCenterPrev[n,i+1]/delta*(u[i+1]/q[i+1] + mu))/(-mu/delta - u[i]/(delta*q[i]) + sig_t[i] - sig_s[i]*w_n[n])
-                    a = (S[i] + sig_s[i]*phiSum - psiCenterPrev[n,i+1]/delta*(u[i+1]/q[i+1] - mu))
-                    # print("Num = ", a)/
 
     return psiCenter
 
@@ -210,15 +206,22 @@ def fill(sig_t, sig_s, S):
 def materialVel(I, dx):
 
     u = np.zeros(I+1)
-    # u += 0
+    u += -50
 
-    for i in range(u.size):
-        xpos = dx*(i- 0.5)
-        if xpos > 4:
-            u[i] = -20
-        else:
-            u[i] = 20
-
+    # for i in range(u.size):
+    #     xpos = dx*(i- 0.5)
+    #     if xpos > 6:
+    #         u[i] = 20
+    #     elif xpos < 2:
+    #         u[i] = 20
+    #     else:
+    #         u[i] = -20
+    # for i in range(u.size):
+    #     xpos = dx*(i- 0.5)
+    #     if xpos > 4:
+    #         u[i] = -50
+    #     else:
+    #         u[i] = 50
     return u
 
 
@@ -242,9 +245,9 @@ v = 100
 sig_t = np.zeros(I) # total cross section
 sig_s = np.zeros(I) # scattering cross section
 S = np.zeros(I) # external source
-sig_t, sig_s, S = fill(sig_t, sig_s, S)
+# sig_t, sig_s, S = fill(sig_t, sig_s, S)
 # alpha = 1
-# sig_t, sig_s, S = reedsProblem(x, 1, sig_t, sig_s, S)
+sig_t, sig_s, S = reedsProblem(x, 1, sig_t, sig_s, S)
 
 # preallocate angular flux vectors and scalar flux and set boundary conditions
 psiCenter = np.zeros((N,I))
@@ -252,7 +255,7 @@ psiCenterPrev = np.zeros((N,I))
 psiEdge = np.zeros((N,I+1))
 psiEdgePrev = np.zeros((N, I+1))
 phiPrev = np.zeros(I)
-Q = np.zeros(I)+ sig_s[0]*phiPrev[0] + S[0]
+Q = np.zeros(I)+ sig_s*phiPrev[0] + S
 
 # boundary conditions
 mu, w = scipy.special.roots_legendre(N)
@@ -284,7 +287,7 @@ while error > errTol:
     
     it += 1
 
-    if error > 1000:
+    if error > 10000:
         break
     # elif error > 2*errorPrev:
     #     break

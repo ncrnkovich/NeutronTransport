@@ -1,6 +1,5 @@
-#%%
-
-# nonuniform sweep
+#%% 
+# nonuniform sweep function
 #  import libraries
 from os import write
 import numpy as np
@@ -10,16 +9,52 @@ from numpy.core.numeric import Inf
 import scipy as scipy
 from scipy.constants import constants
 import scipy.special
-# import sweepFunction
-from sweepFunction import sweep
 # import crossSections
-from crossSections import crossSections
 from crossSections import reedsProblem
-# from sweepFunction import sweepMotion
+# from sweepFunctionNonUniform import sweepMotion
 
 
+def motion1D(a, I, N, Q_f, q):
 
-def sweepMotion(psiCenter, psiEdge, psiCenterPrev, psiEdgePrev, u, v, a, sig_t, Q, boundary):
+    x = np.linspace(0,a,I)
+    dx = x[1] - x[0]
+    u = materialVel(I,dx, a)    
+    # preallocate angular flux vectors and scalar flux and set boundary conditions
+    psiCenter = np.zeros((N,I))
+    psiEdge = np.zeros((N,I+1))
+    phiPrev = np.zeros(I)
+    psiEdgePrev = np.zeros((N,I+1))
+    psiCenterPrev = np.zeros((N,I))
+    
+    # fill cross section and source vectors
+    sig_t, sig_s, sig_f, S = fill(I,dx)
+    mu, w = scipy.special.roots_legendre(N)
+    # w = w/np.sum(w)
+    boundary = np.zeros(N)
+    Q = np.zeros(I) + 0.5*sig_s*phiPrev[0] + Q_f
+    error = 10
+    errTol = 1E-8
+    it = 1
+    while error > errTol:
+        psiCenter, psiEdge = sweepMotion(psiCenter, psiEdge, psiCenterPrev, psiEdgePrev, u, q, a, sig_t, Q, boundary)
+        phi = phiSolver(psiCenter, w)
+        Q = 0.5*sig_s*phi + Q_f # iterate on source
+        error = np.linalg.norm(phiPrev - phi)
+
+        # copy values for next iteration
+        phiPrev = phi.copy()
+
+        # print("Iteration = ", it, "error = ", error)
+        it += 1
+
+        if error > 100000:
+            break
+        # elif it > 1:
+        #     break
+
+    return phi, psiCenter
+
+def sweepMotion(psiCenter, psiEdge, psiCenterPrev, psiEdgePrev, u, q, a, sig_t, Q, boundary):
 
     ## a = total thickness
     ## I = number of points
@@ -111,7 +146,7 @@ def sweepMotion(psiCenter, psiEdge, psiCenterPrev, psiEdgePrev, u, v, a, sig_t, 
         else:
             print("error: cant start sweep from left or right. mu = %.2f"%(mu), "mu + u/q = %.3f"%(mu + u[0]/q[0]), "mu + u[I]/q[I] = %.3f"%(mu + u[-1]/q[-1]))
     return psiCenter, psiEdge
-
+    
 def phiSolver(psi, w):
 
     N, I = psi.shape
@@ -121,33 +156,81 @@ def phiSolver(psi, w):
     
     return phi
     
-def fill(sig_t, sig_s, S):  
+def fill(I,dx):  
 
     # place to write any code to fill cross sections/external source vectors
-    sig_t += 1
-    sig_s += 0.1
-    S += 1
+    sig_t = np.zeros(I) # total cross section
+    sig_s = np.zeros(I) # scattering cross section
+    sig_f = np.zeros(I)
+    S = np.zeros(I)
 
-    return sig_t, sig_s, S
+    # Pu - 239
+    # sig_t += 0.32640
+    # sig_s += 0.225216
+    # sig_f += 0.081600
+    # Ur-235
+    sig_t += 0.32640
+    sig_s += 0.248064
+    sig_f += 0.065280
 
-def materialVel(I,dx):
+    # U - D20
+    # sig_t += 0.54628
+    # sig_s += 0.464338
+    # sig_f += 0.054628
+    S += 0
+    Fes = 0.23209488
+    Fet = 0.23256
+    U235f = 0.06922744
+    U235s = 0.328042
+    U235t = 0.407407
+    Nas = 0.086368032
+    Nat = 0.086368032
+    # multimaterial problem
+    # for i in range(sig_t.size):
+    #     xpos = dx*(i-0.5)
+    #     if xpos < 0.317337461:
+    #         sig_s[i] = Fes
+    #         sig_t[i] = Fet
+    #         sig_f[i] = 0
+    #     elif xpos < 5.437057544:
+    #         sig_s[i] = U235s
+    #         sig_t[i] = U235t
+    #         sig_f[i] = U235f
+    #     elif xpos < 5.754395005:
+    #         sig_s[i] = Fes
+    #         sig_t[i] = Fet
+    #         sig_f[i] = 0
+    #     else:
+    #         sig_s[i] = Nas
+    #         sig_t[i] = Nat
+    #         sig_f[i] = 0
+
+    return sig_t, sig_s, sig_f, S
+
+def materialVel(I,dx, a):
 
     u = np.zeros(I+1)
-    # u += 100
+    u += 0.95
+    # for i in range(u.size):
+    #     xpos = dx*(i-0.5)
+    #     if xpos/a > 0.5:
+    #         u[i] = -0.3
+    #     else:
+    #         u[i] = 0.3
     # for i in range(u.size):
     #     xpos = dx*(i - 0.5)
     #     if xpos > 4 and xpos < 6:
     #         u[i] = -30
     #     else:
     #         u[i] = 10
-    for i in range(u.size):
-        xpos = dx*(i- 0.5)
-        if xpos > 4:
-            u[i] = -60
-        # elif xpos < 2:
-        #     u[i] = 50
-        else:
-            u[i] = 60
+    # for i in range(u.size):
+    #     xpos = dx*(i- 0.5)
+    #     if xpos/a > 0.75:
+    #         u[i] = 0.3
+    #     elif xpos/a < 0.25:
+    #         u[i] = 0.3
+    #     else:
+    #         u[i] = -0.3
 
     return u
 
@@ -158,86 +241,43 @@ def materialVel(I,dx):
 # 1 MeV neutron => 13830 km/s
 # 1 eV = 1.602E-19 J
 
-# set grid parameters
-a = 8
-I = 100
+# a = 2*1.853722
+# a = 2*2.256751
+a = 2*2.872934
+# a = 2*10.371065
+# a = 7.757166007
+I = 300
+N = 10
+q = np.zeros(I+1) + 1
+nu = 2.7
 x = np.linspace(0, a, I)
 dx = x[1] - x[0]
-# specify discrete ordinates
-N = 8
-u = materialVel(I,dx)
-q = np.zeros(I+1) + 100
 
-# cross sections
-sig_t = np.zeros(I) # total cross section
-sig_s = np.zeros(I) # scattering cross section
-S = np.zeros(I) # external source
-sig_t, sig_s, S = fill(sig_t, sig_s, S)
-# sig_t, sig_s, S = reedsProblem(x, 1, sig_t, sig_s, S)
-
-# preallocate angular flux vectors and scalar flux and set boundary conditions
-psiCenter = np.zeros((N,I))
-psiCenterPrev = np.zeros((N,I))
-psiEdge = np.zeros((N,I+1))
-psiEdgePrev = np.zeros((N, I+1))
-phiPrev = np.zeros(I)
-Q = np.zeros(I)+ sig_s*phiPrev[0] + S
-# boundary conditions
-mu, w = scipy.special.roots_legendre(N)
-w = w/np.sum(w)
-boundary = np.zeros(N)
-boundary[mu > 0] = 0
-boundary[mu < 0] = 0
-
-error = 10
+sig_t, sig_s, sig_f, S = fill(I,dx)
+phi0 = np.zeros(I) + 3
+phi0 = phi0/np.linalg.norm(phi0) # do whatever to normalize phi0 to 1
+k = 0.8
+kprev = 0
+Q_f = nu*0.5*sig_f*phi0
 errTol = 1E-8
+error = 10
 it = 1
+
 while error > errTol:
-    psiCenter, psiEdge = sweepMotion(psiCenter, psiEdge, psiCenterPrev, psiEdgePrev, u, q, a, sig_t, Q, boundary)
-    phi = phiSolver(psiCenter, w)
-    Q = sig_s*phi + S # iterate on source
-    error = np.linalg.norm(phiPrev - phi)
 
-    # copy values for next iteration
-    phiPrev = phi.copy()
-    psiCenterPrev = psiCenter.copy()
-    psiEdgePrev = psiEdge.copy()
+    phi, psi = motion1D(a, I, N, Q_f, q)
+    k = np.linalg.norm(phi)
+    phi = phi/k
+    Q_f = 0.5*nu*sig_f*phi
+    error = np.linalg.norm(k - kprev)
+    kprev = k.copy()
 
-    print("Iteration = ", it, "error = ", error)
+    print("k iteration = ", it, "k = %0.7f"%(k))
     it += 1
 
-    if error > 100000:
-        break
-    elif it > 1:
-        break
 
-    
-plt.figure(1)
-plt.plot(x,u[0:(I)])
-plt.title("u")
-plt.grid(True)
-
-plt.figure(2)
-for n in range(N):
-    plt.plot(x, mu[n] + u[0:I]/q[0:I],label="mu = %.2f"%(mu[n]))
-    plt.legend()
-    plt.title("mu + u/q")
-plt.grid(True)
-
-plt.figure(3)
-for n in range(N):
-    plt.plot(x, psiCenter[n,:],"--", label="mu = %.2f"%(mu[n]))
-    plt.legend()
-    plt.title("Psi")
-plt.grid(True)
-
-# plt.legend()
-plt.figure(4)
-plt.plot(x,phi, label="Num")
-plt.legend()
-plt.xlabel("x")
-plt.ylabel("Phi")
-plt.show
+plt.plot(x,phi)
 
 
-# %%
+
+#%%
